@@ -9,6 +9,7 @@ import AWS from "aws-sdk";
 // coment this line out before pushing to heroku
 // AWS.config.loadFromPath("./s3Config.json");
 
+// AWS.config.loadFromPath("./s3Config.json");
 const s3 = new AWS.S3();
 const upload = multer({
     storage: multerS3({
@@ -23,6 +24,7 @@ const upload = multer({
     })
   })
 // import models here ##################################
+import User from "../models/user";
 import Restaurant from "../models/restaurant";
 import Post from "../models/post";
 
@@ -143,5 +145,50 @@ router.post("/logout", (req, res) => {
 	res.send("User logged out.");
 })
 
+router.post("/user/signup", (req, res) => {
+	User.findOne({ where: {
+		username: req.body.username,
+	}})
+	.then((user) => {
+		if (user) {
+			res.json({error: "Username is already taken. Please choose another"})
+		}
+		else {
+			User.signup(req)
+			.then((user) => {
+				req.session.userId = user.get("id");
+				res.json(user.dataValues);
+			});
+		}
+	}).catch((error) => {
+		console.error("Something went wrong", error);
+	});
+});
+
+router.post("/user/login", (req, res) => {
+	User.findOne({ where: {
+		username: req.body.username,
+	}})
+	.then((user) => {
+		if (user) {
+			user.comparePassword(req.body.password)
+			.then((valid) => {
+				if (valid) {
+					req.session.userId = user.get("id");
+					req.session.save((err) => {
+						res.json(user);
+					})
+				}
+				else {
+					res.json({ error: "Bad username or password" });
+				}
+			}).catch((error) => {
+				res.json({ error: "Something went wrong"});
+			});
+		} else {
+			res.json({ error: "Bad username or password" });
+		}
+	})
+});
 
 export default router;

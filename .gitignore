@@ -6,3 +6,4 @@ uploads/
 files/
 photos/
 s3Config.json
+*.jpg
